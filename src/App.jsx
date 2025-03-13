@@ -10,7 +10,7 @@ const CONTRACT_ADDRESS = "0x99880c20e67e2994437Ecb7D2A4ca4d3Ab8efDf4"; // Replac
 function LandRegistryApp() {
     const [provider, setProvider] = useState(null);
     const [signer, setSigner] = useState(null);
-    const [contract, setContract] = useState(null);
+    const [ contract, setContract] = useState(null);
     const [account, setAccount] = useState("");
     const [isConnected, setIsConnected] = useState(false);
     const [userLands, setUserLands] = useState([]);

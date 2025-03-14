@@ -5,12 +5,12 @@ import { ethers } from 'ethers';
 // This is a simplified version for demonstration
 import CONTRACT_ABI from './abi.json'
 
-const CONTRACT_ADDRESS = "0x99880c20e67e2994437Ecb7D2A4ca4d3Ab8efDf4"; // Replace with your deployed contract address
+const CONTRACT_ADDRESS = "0x52e718b1DA77CD883670B27243a740b50658BFf9"; // Replace with your deployed contract address
 
 function LandRegistryApp() {
     const [provider, setProvider] = useState(null);
     const [signer, setSigner] = useState(null);
-    const [ contract, setContract] = useState(null);
+    const [contract, setContract] = useState(null);
     const [account, setAccount] = useState("");
     const [isConnected, setIsConnected] = useState(false);
     const [userLands, setUserLands] = useState([]);
@@ -19,11 +19,19 @@ function LandRegistryApp() {
 
     // Form states
     const [h3Indexes, setH3Indexes] = useState("");
-    const [metadataURI, setMetadataURI] = useState("");
-    const [transferTo, setTransferTo] = useState("");
-    const [transferLandId, setTransferLandId] = useState("");
+    const [area, setArea] = useState("");
+    const [propertyRegistrationNumber, setPropertyRegistrationNumber] = useState("");
+    const [landType, setLandType] = useState("0"); // Default to Industrial (0)
     const [searchH3Index, setSearchH3Index] = useState("");
     const [searchResult, setSearchResult] = useState(null);
+
+    // Land Type options
+    const landTypeOptions = [
+        { value: "0", label: "Industrial" },
+        { value: "1", label: "Commercial" },
+        { value: "2", label: "Agricultural" },
+        { value: "3", label: "Residential" }
+    ];
 
     // Connect to wallet
     const connectWallet = async () => {
@@ -64,7 +72,6 @@ function LandRegistryApp() {
         try {
             setLoading(true);
             // Parse H3 indexes from comma-separated string
-            // Parse H3 indexes from comma-separated string
             const h3IndexArray = h3Indexes.split(',').map(index => index.trim());
             // Properly format hexadecimal values with 0x prefix if needed
             const parsedIndexes = h3IndexArray.map(index => {
@@ -76,7 +83,16 @@ function LandRegistryApp() {
                 return ethers.BigNumber.from(index);
             });
 
-            const tx = await contract.registerLand(parsedIndexes, metadataURI);
+            // Parse area as a number multiplied by 10^5
+            const areaValue = Math.round(parseFloat(area) * 100000);
+            const landTypeValue = parseInt(landType);
+
+            const tx = await contract.registerLand(
+                parsedIndexes, 
+                areaValue, 
+                propertyRegistrationNumber, 
+                landTypeValue
+            );
             await tx.wait();
 
             // Refresh lands after registration
@@ -85,7 +101,9 @@ function LandRegistryApp() {
 
             // Clear form
             setH3Indexes("");
-            setMetadataURI("");
+            setArea("");
+            setPropertyRegistrationNumber("");
+            setLandType("0");
 
             setLoading(false);
             alert("Land registered successfully!");
@@ -93,33 +111,6 @@ function LandRegistryApp() {
             console.error("Registration error:", error);
             setLoading(false);
             alert(`Error registering land: ${error.message}`);
-        }
-    };
-
-    // Transfer land
-    const handleTransferLand = async (e) => {
-        e.preventDefault();
-        if (!contract) return;
-
-        try {
-            setLoading(true);
-            const tx = await contract.transferLand(transferLandId, transferTo);
-            await tx.wait();
-
-            // Refresh lands after transfer
-            const lands = await contract.getLandsByOwner(account);
-            setUserLands(lands.map(land => land.toNumber()));
-
-            // Clear form
-            setTransferLandId("");
-            setTransferTo("");
-
-            setLoading(false);
-            alert("Land transferred successfully!");
-        } catch (error) {
-            console.error("Transfer error:", error);
-            setLoading(false);
-            alert(`Error transferring land: ${error.message}`);
         }
     };
 
@@ -141,7 +132,9 @@ function LandRegistryApp() {
                     landId: landId.toNumber(),
                     owner: landData.owner,
                     registrationDate: new Date(landData.registrationDate.toNumber() * 1000).toLocaleDateString(),
-                    metadataURI: landData.metadataURI
+                    area: (landData.area.toNumber() / 100000).toFixed(5),
+                    propertyRegistrationNumber: landData.propertyRegistrationNumber,
+                    landType: landTypeOptions[landData.landType].label
                 });
             }
 
@@ -165,8 +158,10 @@ function LandRegistryApp() {
                 id: landId,
                 owner: landData.owner,
                 h3Indexes: landData.h3Indexes.map(idx => idx.toString()),
-                metadataURI: landData.metadataURI,
-                registrationDate: new Date(landData.registrationDate.toNumber() * 1000).toLocaleDateString()
+                registrationDate: new Date(landData.registrationDate.toNumber() * 1000).toLocaleDateString(),
+                area: (landData.area.toNumber() / 100000).toFixed(5),
+                propertyRegistrationNumber: landData.propertyRegistrationNumber,
+                landType: landTypeOptions[landData.landType].label
             });
 
             setLoading(false);
@@ -233,16 +228,48 @@ function LandRegistryApp() {
                                 </div>
                                 <div className="mb-4">
                                     <label className="block text-gray-700 text-sm font-medium mb-2">
-                                        Metadata URI
+                                        Area (sq. meters)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.00001"
+                                        value={area}
+                                        onChange={(e) => setArea(e.target.value)}
+                                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="e.g. 1250.75"
+                                        required
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Will be stored as (area × 10^5)</p>
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-gray-700 text-sm font-medium mb-2">
+                                        Property Registration Number
                                     </label>
                                     <input
                                         type="text"
-                                        value={metadataURI}
-                                        onChange={(e) => setMetadataURI(e.target.value)}
+                                        value={propertyRegistrationNumber}
+                                        onChange={(e) => setPropertyRegistrationNumber(e.target.value)}
                                         className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="ipfs://..."
+                                        placeholder="e.g. PR-12345-2025"
                                         required
                                     />
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-gray-700 text-sm font-medium mb-2">
+                                        Land Type
+                                    </label>
+                                    <select
+                                        value={landType}
+                                        onChange={(e) => setLandType(e.target.value)}
+                                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        required
+                                    >
+                                        {landTypeOptions.map(option => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <button
                                     type="submit"
@@ -252,45 +279,6 @@ function LandRegistryApp() {
                                     {loading ? "Registering..." : "Register Land"}
                                 </button>
                             </form>
-
-                            <div className="mt-8">
-                                <h2 className="text-xl font-semibold mb-4">Transfer Land</h2>
-                                <form onSubmit={handleTransferLand}>
-                                    <div className="mb-4">
-                                        <label className="block text-gray-700 text-sm font-medium mb-2">
-                                            Land ID
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={transferLandId}
-                                            onChange={(e) => setTransferLandId(e.target.value)}
-                                            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="0"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="mb-4">
-                                        <label className="block text-gray-700 text-sm font-medium mb-2">
-                                            New Owner Address
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={transferTo}
-                                            onChange={(e) => setTransferTo(e.target.value)}
-                                            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="0x..."
-                                            required
-                                        />
-                                    </div>
-                                    <button
-                                        type="submit"
-                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md transition"
-                                        disabled={loading}
-                                    >
-                                        {loading ? "Transferring..." : "Transfer Land"}
-                                    </button>
-                                </form>
-                            </div>
                         </div>
 
                         {/* Middle Column - Your Lands */}
@@ -347,7 +335,13 @@ function LandRegistryApp() {
                                                     <span className="text-gray-600">Registered:</span> {searchResult.registrationDate}
                                                 </p>
                                                 <p className="text-sm mt-1">
-                                                    <span className="text-gray-600">Metadata:</span> {searchResult.metadataURI}
+                                                    <span className="text-gray-600">Area:</span> {searchResult.area} sq.m
+                                                </p>
+                                                <p className="text-sm mt-1">
+                                                    <span className="text-gray-600">Registration Number:</span> {searchResult.propertyRegistrationNumber}
+                                                </p>
+                                                <p className="text-sm mt-1">
+                                                    <span className="text-gray-600">Land Type:</span> {searchResult.landType}
                                                 </p>
                                             </>
                                         ) : (
@@ -374,8 +368,16 @@ function LandRegistryApp() {
                                             {selectedLand.registrationDate}
                                         </p>
                                         <p className="text-sm mt-3">
-                                            <span className="text-gray-600 font-medium">Metadata URI:</span><br />
-                                            <span className="break-all">{selectedLand.metadataURI}</span>
+                                            <span className="text-gray-600 font-medium">Area:</span><br />
+                                            {selectedLand.area} sq.m
+                                        </p>
+                                        <p className="text-sm mt-3">
+                                            <span className="text-gray-600 font-medium">Property Registration #:</span><br />
+                                            {selectedLand.propertyRegistrationNumber}
+                                        </p>
+                                        <p className="text-sm mt-3">
+                                            <span className="text-gray-600 font-medium">Land Type:</span><br />
+                                            {selectedLand.landType}
                                         </p>
                                     </div>
 
@@ -391,23 +393,6 @@ function LandRegistryApp() {
                                             </ul>
                                         </div>
                                     </div>
-
-                                    {selectedLand.owner.toLowerCase() === account.toLowerCase() && (
-                                        <div className="mt-6">
-                                            <button
-                                                onClick={() => {
-                                                    setTransferLandId(selectedLand.id);
-                                                    window.scrollTo({
-                                                        top: document.querySelector('form').offsetTop,
-                                                        behavior: 'smooth'
-                                                    });
-                                                }}
-                                                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md transition"
-                                            >
-                                                Transfer This Land
-                                            </button>
-                                        </div>
-                                    )}
                                 </div>
                             ) : (
                                 <p className="text-gray-500 italic">Select a land parcel to view details.</p>

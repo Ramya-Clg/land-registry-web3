@@ -19,6 +19,18 @@
 				"internalType": "uint64[]",
 				"name": "h3Indexes",
 				"type": "uint64[]"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "propertyRegistrationNumber",
+				"type": "string"
+			},
+			{
+				"indexed": false,
+				"internalType": "enum LandRegistry.LandType",
+				"name": "landType",
+				"type": "uint8"
 			}
 		],
 		"name": "LandRegistered",
@@ -57,9 +69,19 @@
 				"type": "uint64[]"
 			},
 			{
+				"internalType": "uint256",
+				"name": "area",
+				"type": "uint256"
+			},
+			{
 				"internalType": "string",
-				"name": "metadataURI",
+				"name": "propertyRegistrationNumber",
 				"type": "string"
+			},
+			{
+				"internalType": "enum LandRegistry.LandType",
+				"name": "landType",
+				"type": "uint8"
 			}
 		],
 		"name": "registerLand",
@@ -70,24 +92,6 @@
 				"type": "uint256"
 			}
 		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "landId",
-				"type": "uint256"
-			},
-			{
-				"internalType": "address",
-				"name": "newOwner",
-				"type": "address"
-			}
-		],
-		"name": "transferLand",
-		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
 	},
@@ -105,6 +109,25 @@
 				"internalType": "uint256",
 				"name": "",
 				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "propertyRegistrationNumber",
+				"type": "string"
+			}
+		],
+		"name": "checkPropertyRegistrationNumber",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
 			}
 		],
 		"stateMutability": "view",
@@ -133,14 +156,24 @@
 						"type": "uint64[]"
 					},
 					{
-						"internalType": "string",
-						"name": "metadataURI",
-						"type": "string"
-					},
-					{
 						"internalType": "uint256",
 						"name": "registrationDate",
 						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "area",
+						"type": "uint256"
+					},
+					{
+						"internalType": "string",
+						"name": "propertyRegistrationNumber",
+						"type": "string"
+					},
+					{
+						"internalType": "enum LandRegistry.LandType",
+						"name": "landType",
+						"type": "uint8"
 					}
 				],
 				"internalType": "struct LandRegistry.Land",
@@ -160,6 +193,25 @@
 			}
 		],
 		"name": "getLandsByOwner",
+		"outputs": [
+			{
+				"internalType": "uint256[]",
+				"name": "",
+				"type": "uint256[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "enum LandRegistry.LandType",
+				"name": "landType",
+				"type": "uint8"
+			}
+		],
+		"name": "getLandsByType",
 		"outputs": [
 			{
 				"internalType": "uint256[]",
